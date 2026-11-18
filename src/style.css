@@ -95,6 +95,108 @@ a {
   padding: 2rem 1.5rem;
 }
 
+/* CATALOG HERO & FILTER BAR */
+.catalog-hero {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.catalog-hero h1 {
+  font-size: 2.25rem;
+  margin: 0 0 0.5rem;
+}
+
+.catalog-hero p {
+  color: var(--muted);
+  margin: 0;
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 2.5rem;
+}
+
+.filter-pill {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 0.4rem 1.2rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.filter-pill.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+/* ALBUM GRID */
+.album-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 2rem;
+}
+
+.album-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.album-image {
+  display: block;
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+}
+
+.album-body {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.album-genre {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.album-title {
+  font-size: 1.1rem;
+  margin: 0.35rem 0;
+}
+
+.album-title a {
+  text-decoration: none;
+  color: var(--text);
+}
+
+.album-artist {
+  color: var(--muted);
+  margin: 0 0 0.5rem;
+}
+
+.album-price {
+  font-weight: 700;
+  margin: 0 0 1rem;
+}
+
+.album-body .btn-block {
+  margin-top: auto;
+}
+
 /* BUTTONS */
 .btn {
   display: inline-flex;

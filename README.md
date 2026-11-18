@@ -92,31 +92,26 @@ The diagram below outlines the complete component decomposition, lifted state ow
         │   │   └── selectedGenre (String): Active filter: "All" | "Jazz" | "Electronic" | "Rock" | "Classical". Default: "All".
         │   ├── Props Received:
         │   │   ├── albums (Array<Object>): The ALBUMS dataset passed down from App.
-        │   │   └── onAddToCart (Function): Forwarded to AlbumGrid -> AlbumCard.
+        │   │   └── onAddToCart (Function): handleAddToCart from App, forwarded to each AlbumCard.
+        │   ├── Local Constants:
+        │   │   └── genres (Array<String>): ["All", "Jazz", "Electronic", "Rock", "Classical"].
         │   ├── Derived Values:
         │   │   └── filteredAlbums (Array<Object>): selectedGenre === "All" ? albums : albums.filter(a => a.genre === selectedGenre)
-        │   ├── Callback Handlers:
-        │   │   └── onSelectGenre(genre: String): Calls setSelectedGenre(genre).
+        │   ├── Events:
+        │   │   └── Filter button onClick: () => setSelectedGenre(genre).
         │   │
-        │   ├── <CatalogHero /> ──> src/components/CatalogHero.jsx (Presentational banner)
-        │   │   └── Props Received: None.
+        │   ├── <header className="catalog-hero"> (Inline JSX banner: heading + tagline)
         │   │
-        │   ├── <GenreFilterBar /> ──> src/components/GenreFilterBar.jsx (Button group for genre filtering)
-        │   │   └── Props Received:
-        │   │       ├── genres (Array<String>): ["All", "Jazz", "Electronic", "Rock", "Classical"].
-        │   │       ├── selectedGenre (String): Highlights the active genre button.
-        │   │       └── onSelectGenre (Function): Called as onSelectGenre(genre) on button click.
+        │   ├── <div className="filter-bar"> (Inline controlled button group: genres.map() renders one button per
+        │   │     genre; the button matching selectedGenre gets the "active" class)
         │   │
-        │   └── <AlbumGrid /> ──> src/components/AlbumGrid.jsx (Responsive CSS Grid container)
-        │       ├── Props Received:
-        │       │   ├── albums (Array<Object>): filteredAlbums from CatalogPage.
-        │       │   └── onAddToCart (Function): Forwarded to each AlbumCard.
+        │   └── <div className="album-grid"> (Inline responsive CSS Grid container)
         │       │
-        │       └── <AlbumCard /> ──> src/components/AlbumCard.jsx (Rendered via albums.map() iterator, key = album.id)
+        │       └── <AlbumCard /> ──> src/components/AlbumCard.jsx (Rendered via filteredAlbums.map() iterator, key = album.id)
         │           ├── Props Received:
-        │           │   ├── album (Object): Shows image, title, artist, genre, price.
+        │           │   ├── album (Object): Shows image, genre, title, artist, price.
         │           │   └── onAddToCart (Function): Called as onAddToCart(album) by the "Add to Cart" button.
-        │           └── Navigation: <Link to={`/album/${album.id}`}> wraps the image/title (client-side, no reload).
+        │           └── Navigation: <Link to={`/album/${album.id}`}> on the image and title (client-side, no reload).
         │
         ├── <Route path="/album/:albumId" element={<AlbumDetailPage />} /> ──> src/pages/AlbumDetailPage.jsx   [ROUTED PAGE]
         │   ├── Route Parameters: const { albumId } = useParams(); album = albums.find(a => a.id === albumId).
