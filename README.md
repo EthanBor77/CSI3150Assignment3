@@ -32,13 +32,11 @@ VinylVault is a Single-Page Application built with React and Vite. Made for viny
 
 ### Project Directory Structure
 
-The project root holds the build and config files (`index.html`, `package.json`, `vite.config.js`) plus this `README.md`. All application code lives in `src/`, where `main.jsx` mounts `App.jsx` (the root component that owns the cart state and routes) and `style.css` holds the global styles. `src/pages/` contains the routed views (`CatalogPage`, `AlbumDetailPage`, `CheckoutPage`), and `src/components/` contains the reusable UI pieces (`Navbar`, `CartDrawer`, `AlbumCard`, and others). `src/data/albums.js` exports the `ALBUMS` product dataset, and `src/assets/` stores local media files.
+The project root holds the build and config files (`index.html`, `package.json`, `vite.config.js`) plus this `README.md`. All application code lives in `src/`, where `main.jsx` boots up `App.jsx` and `styles.css` holds the all styles. `src/pages/` contains the different page views (`CatalogPage`, `AlbumDetailPage`, `CheckoutPage`), and `src/components/` contains various UI pieces (`Navbar`, `CartDrawer`, `AlbumCard`, and `CartItem`). `src/data/albums.js` is the given dataset.
 
 ---
 
 ## 2. React Component Hierarchy & State Flow Architecture
-
-The diagram below outlines the complete component decomposition, lifted state ownership, unidirectional prop flow, event callbacks, and React Router mappings for VinylVault.
 
 ```text
 <BrowserRouter> ──> src/main.jsx (Wraps <App /> to enable client-side routing)
@@ -63,7 +61,7 @@ The diagram below outlines the complete component decomposition, lifted state ow
     ├── <Navbar /> ──> src/components/Navbar.jsx (Sticky header; rendered on every route)
     │   ├── Props Received:
     │   │   ├── cartCount (Number): totalCartCount, shown in the cart badge pill (hidden when 0).
-    │   │   └── onOpenCart (Function): Called when the "🛒 Cart" badge button is clicked.
+    │   │   └── onOpenCart (Function): Called when the "Cart" badge button is clicked.
     │   └── Navigation: <Link to="/"> on the VinylVault logo and the "Catalog" link (client-side, no reload).
     │
     ├── <CartDrawer /> ──> src/components/CartDrawer.jsx (Slide-over panel; rendered on every route)
@@ -115,42 +113,52 @@ The diagram below outlines the complete component decomposition, lifted state ow
         │
         ├── <Route path="/album/:albumId" element={<AlbumDetailPage />} /> ──> src/pages/AlbumDetailPage.jsx   [ROUTED PAGE]
         │   ├── Route Parameters: const { albumId } = useParams(); album = albums.find(a => a.id === albumId).
+        │   ├── Owned State (useState):
+        │   │   └── qty (Number): How many copies to add from the quantity input. Default: 1 (never below 1).
         │   ├── Props Received:
         │   │   ├── albums (Array<Object>): The ALBUMS dataset, used to look up the album by albumId.
-        │   │   └── onAddToCart (Function): Called as onAddToCart(album) by the "Add to Cart" button.
-        │   ├── Renders: image, title, artist, label, description, price, stock status (In Stock / Low Stock),
-        │   │     specs (weight, catalogNumber, speed), and tracklist. Shows a "not found" message if no match.
-        │   └── Navigation: <Link to="/"> "Back to Catalog" (client-side, no reload).
+        │   │   └── onAddToCart (Function): Called as onAddToCart(album, qty) by the "Add {qty} to cart" button.
+        │   ├── Events:
+        │   │   └── Quantity input onChange: setQty(Math.max(1, parseInt(e.target.value, 10) || 1)).
+        │   ├── Renders: image, genre, title, artist, price, description, stock status ("In Stock (N units
+        │   │     available)" / "Out of Stock"), specs table (label, catalogNumber, weight, speed), and tracklist.
+        │   │     Shows an "Album Not Found" message if no album matches albumId.
+        │   └── Navigation: Breadcrumb <Link to="/"> "Catalog" (client-side, no reload).
         │
         └── <Route path="/checkout" element={<CheckoutPage />} /> ──> src/pages/CheckoutPage.jsx   [ROUTED PAGE]
             ├── Owned State (useState):
             │   ├── formData (Object): Controlled input values { fullName: String, address: String, city: String,
             │   │     postalCode: String, cardNumber: String }. Default: all "".
-            │   ├── errors (Object): Validation messages keyed by field name, e.g. { postalCode: "Required" }. Default: {}.
-            │   └── isOrderSubmitted (Boolean): Swaps the form for the OrderConfirmation view. Default: false.
+            │   ├── errors (Object): Validation messages keyed by field name, e.g. { postalCode: "Postal code must be
+            │   │     5 digits." }. Default: {}.
+            │   └── isSubmitted (Boolean): Swaps the form for the order confirmation view. Default: false.
             ├── Props Received:
-            │   ├── cart (Array<{ album, quantity }>): Rendered in the OrderSummary.
-            │   ├── subtotal (Number): Order total displayed in the OrderSummary.
-            │   └── onClearCart (Function): Called after valid submission to reset the cart in App.
+            │   ├── cart (Array<{ ...album, quantity }>): Rendered in the order summary.
+            │   └── onClearCart (Function): handleClearCart from App; called after a valid submission to reset the cart.
+            ├── Derived Values:
+            │   ├── subtotal (Number): cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+            │   ├── taxes (Number): subtotal * 0.06
+            │   └── total (Number): subtotal + taxes
             ├── Callback Handlers:
-            │   ├── handleInputChange(event: ChangeEvent): setFormData({ ...formData, [event.target.name]: event.target.value }).
-            │   └── handleSubmit(event: FormEvent): event.preventDefault(); validates fields into errors; if valid,
-            │         calls onClearCart() and setIsOrderSubmitted(true).
+            │   ├── handleChange(e: ChangeEvent): setFormData({ ...formData, [e.target.name]: e.target.value }).
+            │   ├── validateForm(): Returns an errors object (required fields, 5-digit postal code, 16-digit card number).
+            │   └── handleSubmit(e: FormEvent): e.preventDefault(); runs validateForm() and stores the result in errors;
+            │         if there are no errors, calls setIsSubmitted(true) and onClearCart().
             │
-            ├── <OrderSummary /> ──> src/components/OrderSummary.jsx (Itemized order review)
-            │   └── Props Received:
-            │       ├── cart (Array<{ album, quantity }>): Line items with quantity and line totals.
-            │       └── subtotal (Number): Order total.
+            ├── Conditional Views (only one renders, chosen with if statements):
+            │   ├── isSubmitted === true -> <div className="checkout-success"> (Inline confirmation: thank-you message
+            │   │     with formData.fullName and shipping address, plus <Link to="/"> "Return to HomePage")
+            │   ├── cart.length === 0 -> <div className="empty-cart-page"> (Inline empty-cart message with <Link to="/">)
+            │   └── otherwise -> checkout layout below
             │
-            ├── <CheckoutForm /> ──> src/components/CheckoutForm.jsx (Controlled form; shown while isOrderSubmitted is false)
-            │   └── Props Received:
-            │       ├── formData (Object): Supplies each input's value attribute.
-            │       ├── errors (Object): Shows an error message under each invalid field.
-            │       ├── onChange (Function): Receives handleInputChange; bound to every input's onChange.
-            │       └── onSubmit (Function): Receives handleSubmit; bound to the <form> onSubmit.
+            ├── <form className="checkout-form" onSubmit={handleSubmit}> (Inline controlled form; noValidate so the
+            │     React validation messages show instead of the browser's)
+            │   ├── Inputs (each has value={formData.<name>} and onChange={handleChange}):
+            │   │     fullName, address, city, postalCode, cardNumber
+            │   ├── Error text: {errors.<name> && <p className="form-error">} under each input.
+            │   └── Submit button: "Complete Order ($total)".
             │
-            └── <OrderConfirmation /> ──> src/components/OrderConfirmation.jsx (Shown once isOrderSubmitted is true)
-                ├── Props Received:
-                │   └── customerName (String): formData.fullName, used in the thank-you message.
-                └── Navigation: <Link to="/"> "Continue Shopping" (client-side, no reload).
+            └── <aside className="order-summary-card"> (Inline itemized order review)
+                ├── cart.map() -> one row per item: title × quantity and line total (item.price * item.quantity).
+                └── Subtotal, Estimated Tax (6%), and Total rows.
 ```
