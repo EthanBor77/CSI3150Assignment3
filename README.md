@@ -45,47 +45,45 @@ The diagram below outlines the complete component decomposition, lifted state ow
 │
 └── <App /> ──> src/App.jsx (Root component; owns all shared state)
     ├── Owned State (useState):
-    │   ├── cart (Array<{ album: Object, quantity: Number }>): Line items, lifted here so Navbar, CartDrawer,
-    │   │     AlbumCard/AlbumDetailPage (adding), and CheckoutPage stay synchronized across routes. Default: [].
+    │   ├── cart (Array<{ ...album, quantity: Number }>): Line items (each is a copy of the album object plus a
+    │   │     quantity field), lifted here so Navbar, CartDrawer, AlbumCard/AlbumDetailPage (adding), and
+    │   │     CheckoutPage stay synchronized across routes. Default: [].
     │   └── isCartOpen (Boolean): Controls whether the slide-over CartDrawer is visible. Default: false.
     ├── Derived Values (computed each render, not stored in state):
-    │   ├── cartCount (Number): cart.reduce((sum, item) => sum + item.quantity, 0)
-    │   └── subtotal (Number): cart.reduce((sum, item) => sum + item.album.price * item.quantity, 0)
+    │   └── totalCartCount (Number): cart.reduce((sum, item) => sum + item.quantity, 0)
     ├── Callback Handlers Defined & Passed Down (all update state immutably via .map(), .filter(), spread):
-    │   ├── onAddToCart(album: Object): Adds { album, quantity: 1 } or increments quantity if already in cart.
-    │   ├── onUpdateQuantity(albumId: String, delta: Number): Adds +1/-1 to quantity; removes the item if it reaches 0.
-    │   ├── onRemove(albumId: String): Filters the matching album out of cart.
-    │   ├── onClearCart(): Resets cart to [] after a successful checkout.
-    │   └── onToggleCart(): Flips isCartOpen (true <-> false).
+    │   ├── handleAddToCart(album: Object, quantity: Number = 1): Adds { ...album, quantity } or increases the
+    │   │     quantity if already in cart, then opens the drawer (setIsCartOpen(true)).
+    │   ├── handleUpdateQuantity(albumId: String, delta: Number): Adds +1/-1 to quantity; removes the item if it reaches 0.
+    │   ├── handleRemoveFromCart(albumId: String): Filters the matching album out of cart.
+    │   ├── handleClearCart(): Resets cart to [] after a successful checkout.
+    │   ├── () => setIsCartOpen(true): Inline arrow function passed to Navbar as onOpenCart.
+    │   └── () => setIsCartOpen(false): Inline arrow function passed to CartDrawer as onClose.
     │
     ├── <Navbar /> ──> src/components/Navbar.jsx (Sticky header; rendered on every route)
     │   ├── Props Received:
-    │   │   ├── cartCount (Number): Total item quantity shown in the cart badge.
-    │   │   └── onToggleCart (Function): Called when the cart badge button is clicked.
-    │   ├── Navigation: <Link to="/"> on the VinylVault logo (client-side, no reload).
-    │   │
-    │   └── <CartBadge /> ──> src/components/CartBadge.jsx (Cart button with item-count bubble)
-    │       └── Props Received:
-    │           ├── count (Number): Value of cartCount displayed in the badge.
-    │           └── onClick (Function): Receives onToggleCart; fires on button click.
+    │   │   ├── cartCount (Number): totalCartCount, shown in the cart badge pill (hidden when 0).
+    │   │   └── onOpenCart (Function): Called when the "🛒 Cart" badge button is clicked.
+    │   └── Navigation: <Link to="/"> on the VinylVault logo and the "Catalog" link (client-side, no reload).
     │
     ├── <CartDrawer /> ──> src/components/CartDrawer.jsx (Slide-over panel; rendered on every route)
     │   ├── Props Received:
-    │   │   ├── isOpen (Boolean): isCartOpen; applies the "open" CSS class to slide the panel in/out.
-    │   │   ├── cart (Array<{ album, quantity }>): Line items to render.
-    │   │   ├── subtotal (Number): Derived order subtotal to display.
-    │   │   ├── onClose (Function): Receives onToggleCart; closes the drawer (close button / backdrop click).
-    │   │   ├── onUpdateQuantity (Function): Forwarded to each CartItem's +/- buttons.
-    │   │   └── onRemove (Function): Forwarded to each CartItem's delete button.
+    │   │   ├── isOpen (Boolean): isCartOpen; when false the drawer renders nothing (returns null), when true it slides in with a CSS animation.
+    │   │   ├── cart (Array<{ ...album, quantity }>): Line items to render.
+    │   │   ├── onClose (Function): Closes the drawer (✕ button / overlay click).
+    │   │   ├── onUpdateQuantity (Function): handleUpdateQuantity, forwarded to each CartItem's +/- buttons.
+    │   │   └── onRemove (Function): handleRemoveFromCart, forwarded to each CartItem's Remove button.
+    │   ├── Derived Values:
+    │   │   └── subtotal (Number): cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
     │   ├── Callback Handlers:
-    │   │   └── handleCheckout(): Calls onClose() then useNavigate()("/checkout").
+    │   │   └── handleProceedToCheckout(): Calls onClose() then navigate("/checkout") from useNavigate().
     │   │
-    │   └── <CartItem /> ──> src/components/CartItem.jsx (Rendered via cart.map() iterator, key = album.id)
+    │   └── <CartItem /> ──> src/components/CartItem.jsx (Rendered via cart.map() iterator, key = item.id)
     │       └── Props Received:
-    │           ├── item ({ album: Object, quantity: Number }): The line item to display.
-    │           ├── onUpdateQuantity (Function): Called as onUpdateQuantity(item.album.id, +1 | -1).
-    │           └── onRemove (Function): Called as onRemove(item.album.id).
-    │           (Line total = item.album.price * item.quantity, computed inline.)
+    │           ├── item ({ ...album, quantity: Number }): The line item to display.
+    │           ├── onUpdateQuantity (Function): Called as onUpdateQuantity(item.id, +1 | -1).
+    │           └── onRemove (Function): Called as onRemove(item.id).
+    │           (Line total = item.price * item.quantity, computed inline.)
     │
     └── <Routes> (React Router v6+ route switch; renders exactly one matching <Route>)
         │
